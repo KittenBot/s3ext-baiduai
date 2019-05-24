@@ -1,4 +1,3 @@
-
 // create by scratch3-extension generator
 const ArgumentType = Scratch.ArgumentType;
 const BlockType = Scratch.BlockType;
@@ -17,14 +16,18 @@ class BaiduAI{
     this.runtime = runtime;
     this._context = null;
     this._resampler = null;
-    this.speechPromise = null;
+    this._onSpeechDone = null;
     this.initMicroPhone = this.initMicroPhone.bind(this);
     this._processAudioCallback = this._processAudioCallback.bind(this);
     this._resetListening = this._resetListening.bind(this);
-
+    this._recognize = this._recognize.bind(this);
+    this._recognizeSuccess = this._recognizeSuccess.bind(this);
+    
     this.runtime.on('PROJECT_STOP_ALL', this._resetListening.bind(this));
 
     this.initMicroPhone();
+    this.bufferArray= [];
+    
   }
 
   initMicroPhone (){
@@ -87,8 +90,85 @@ class BaiduAI{
 
   _processAudioCallback (e) {
     var resampled = this._resampler.resample(e.inputBuffer.getChannelData(0))
-    console.log("on audio data", e, resampled.length);
-    return;
+    this.bufferArray.push.apply(this.bufferArray, resampled);
+  }
+
+  _recognizeSuccess (txt){
+    
+    this.result = txt;
+    if (this._onSpeechDone){
+      this._onSpeechDone();
+    }
+    const words = [];
+    this.runtime.targets.forEach(target => {
+      target.blocks._scripts.forEach(id => {
+          const b = target.blocks.getBlock(id);
+          if (b.opcode === 'BaiduAI_whenheard') {
+              // Grab the text from the hat block's shadow.
+              const inputId = b.inputs.SPEECH.block;
+              const inputBlock = target.blocks.getBlock(inputId);
+              // Only grab the value from text blocks. This means we'll
+              // miss some. e.g. values in variables or other reporters.
+              if (inputBlock.opcode === 'text') {
+                  const word = target.blocks.getBlock(inputId).fields.TEXT.value;
+                  if (txt.indexOf(word)>-1){
+                    this.runtime.startHats('BaiduAI_whenheard', {TEXT: word});
+                    words.push(word);
+                  }
+              }
+          }
+      });
+    });
+  }
+
+  _recognize (){
+    const _recognizeSuccess = this._recognizeSuccess;
+    this._resetListening();
+    // var pcm = floatTo16BitPCM(this.bufferArray);
+    // console.log("total", pcm);
+    // build wav file
+    var dataLength = this.bufferArray.length * 2; // 16bit
+    var buffer = new ArrayBuffer(dataLength);
+    var data = new DataView(buffer);
+    var offset = 0;
+    
+    for (var i = 0; i < this.bufferArray.length; i++, offset += 2) {
+      var s = Math.max(-1, Math.min(1, this.bufferArray[i]));
+      data.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+    }
+
+    var blob = new Blob([data], { type: 'audio/wav' });
+    var reader = new FileReader();
+    const _this = this;
+    reader.onload = function() {
+        var dataUrl = reader.result;
+        var base64 = dataUrl.split(',')[1];
+        // console.log(base64);
+        const reqJson = {
+          "format":"pcm",
+          "rate":16000,
+          "dev_pid":1537,
+          "channel":1,
+          "token":"24.3d8401a9a47d898f4e0355521c40c677.2592000.1561269908.282335-16328058",
+          "cuid":"kittenblock",
+          "len":dataLength,
+          "speech": base64
+        }
+        fetch("http://vop.baidu.com/server_api", {
+          body: JSON.stringify(reqJson),
+          headers: {
+            'content-type': 'application/json'
+          },
+          method: "POST"
+        }).then(res => res.json()).then(ret => {
+          console.log(ret);
+          if (ret.err_no === 0){
+            _recognizeSuccess(ret.result[0]);
+          }
+        });
+    };
+    reader.readAsDataURL(blob);
+
   }
 
   _resetListening () {
@@ -112,27 +192,34 @@ class BaiduAI{
 
   listenspeech (args, util){
     let timeout = parseInt(args.TIMEOUT, 10);
-    timeout = timeout<10 ? 10 : timeout;
+    timeout = timeout<1 ? 1 : timeout;
     timeout = timeout>60 ? 60 : timeout;
     this.runtime.emitMicListening(true);
-
-    this.speechPromise = new Promise((resolve, reject) => {
+    this.bufferArray= [];
+    return new Promise(resolve => {
       this._sourceNode = this._context.createMediaStreamSource(this._micStream);
-      this._scriptNode = this._context.createScriptProcessor(BUFSIZE);
+      this._scriptNode = this._context.createScriptProcessor(BUFSIZE, 1, 1);
+
+      this._sourceNode.connect(this._scriptNode);
       this._scriptNode.addEventListener('audioprocess', this._processAudioCallback);
       this._scriptNode.connect(this._context.destination);
+      setTimeout(this._recognize, timeout*1000);
+      this._onSpeechDone = resolve;
     });
   }
 
   whenheard (args, util){
-    const SPEECH = args.SPEECH;
-
+    //const SPEECH = args.SPEECH;
+    ///console.log("heart", args);
+    return true;
   }
 
   speechout (args, util){
-
+    return this.result;
   }
 
 }
 
 module.exports = BaiduAI;
+
+// ref: http://0313.name/archives/300#comment-48
