@@ -1,6 +1,5 @@
 {
     "name": "BaiduAI",
     "type": "AI",
-    "extensions": ["BaiduAI"],
     "image": "baidu.png"
 }
