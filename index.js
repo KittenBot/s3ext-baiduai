@@ -84,7 +84,14 @@ class BaiduAI{
           blockType: BlockType.REPORTER,
           text: 'Speech Text'
         }
-      ]
+      ],
+      translation_map: {
+        'zh-cn': {
+            listenspeech: '听候语音输入 超时[TIMEOUT]',
+            whenheard: '当听到 [SPEECH]',
+            speechout: '语音输入'
+        }
+      }
     }
   }
 
