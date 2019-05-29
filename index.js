@@ -64,7 +64,7 @@ class BaiduAI{
           arguments: {
             TIMEOUT: {
               type: ArgumentType.NUMBER,
-              defaultValue: 10
+              defaultValue: 6
             }
           },
         },
