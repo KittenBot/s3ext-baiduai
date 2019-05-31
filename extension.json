@@ -1,5 +1,10 @@
 {
     "name": "BaiduAI",
     "type": "AI",
-    "image": "baidu.png"
+    "image": "baidu.png",
+    "version": "1.0.1",
+    "examples": [
+        "语音识别控制Microbit.sb3",
+        "语音识别舞台小猫说.sb3"
+    ]
 }
