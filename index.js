@@ -11,8 +11,11 @@ const Resampler = require('./resampler.js');
 
 const BUFSIZE = 8192;
 
-class BaiduAI{
-  constructor (runtime){
+const accessTokenVoice = "24.61e0ddccb87906954a0dadc95c7a6bf1.2592000.1562319236.282335-16328058";
+const accessTokenWrite = "24.1f87f4e642a774141b2f6f6cd0946643.2592000.1562319934.282335-16440024";
+
+class BaiduAI {
+  constructor(runtime) {
     this.runtime = runtime;
     this._context = null;
     this._resampler = null;
@@ -22,33 +25,33 @@ class BaiduAI{
     this._resetListening = this._resetListening.bind(this);
     this._recognize = this._recognize.bind(this);
     this._recognizeSuccess = this._recognizeSuccess.bind(this);
-    
+
     this.runtime.on('PROJECT_STOP_ALL', this._resetListening.bind(this));
 
     this.initMicroPhone();
-    this.bufferArray= [];
-    
+    this.bufferArray = [];
+
   }
 
-  initMicroPhone (){
+  initMicroPhone() {
     if (!this._context) {
       this._context = new (window.AudioContext || window.webkitAudioContext)();
       this._resampler = new Resampler(this._context.sampleRate, 16000, 1, BUFSIZE);
     }
     this._audioPromise = navigator.mediaDevices.getUserMedia({
-        audio: true
+      audio: true
     });
 
     this._audioPromise.then(stream => {
       this._micStream = stream;
     }).catch(e => {
-        log.error(`Problem connecting to microphone:  ${e}`);
+      log.error(`Problem connecting to microphone:  ${e}`);
     });
 
   }
 
 
-  getInfo (){
+  getInfo() {
     return {
       id: 'BaiduAI',
       name: 'BaiduAI',
@@ -83,52 +86,77 @@ class BaiduAI{
           opcode: 'speechout',
           blockType: BlockType.REPORTER,
           text: 'Speech Text'
-        }
+        },
+        '---',
+        {
+          opcode: 'writecunlian',
+          blockType: BlockType.REPORTER,
+          text: 'Write CUNLIAN [KEY]',
+          arguments: {
+            KEY: {
+              type: ArgumentType.STRING,
+              defaultValue: "小喵"
+            }
+          },
+        },
+        {
+          opcode: 'writepoem',
+          blockType: BlockType.REPORTER,
+          text: 'Write Poem [KEY]',
+          arguments: {
+            KEY: {
+              type: ArgumentType.STRING,
+              defaultValue: "小喵"
+            }
+          },
+        },
       ],
       translation_map: {
         'zh-cn': {
-            listenspeech: '听候语音输入 超时[TIMEOUT]',
-            whenheard: '当听到 [SPEECH]',
-            speechout: '语音输入'
+          listenspeech: '听候语音输入 超时[TIMEOUT]',
+          whenheard: '当听到 [SPEECH]',
+          speechout: '语音输入',
+          writecunlian: "写春联 [KEY]",
+          writepoem: "写诗 [KEY]",
         }
       }
     }
   }
 
-  _processAudioCallback (e) {
+  _processAudioCallback(e) {
     var resampled = this._resampler.resample(e.inputBuffer.getChannelData(0))
     this.bufferArray.push.apply(this.bufferArray, resampled);
   }
 
-  _recognizeSuccess (txt){
-    
+  _recognizeSuccess(txt) {
+
     this.result = txt;
-    if (this._onSpeechDone){
+    if (this._onSpeechDone) {
       this._onSpeechDone();
     }
     const words = [];
     this.runtime.targets.forEach(target => {
       target.blocks._scripts.forEach(id => {
-          const b = target.blocks.getBlock(id);
-          if (b.opcode === 'BaiduAI_whenheard') {
-              // Grab the text from the hat block's shadow.
-              const inputId = b.inputs.SPEECH.block;
-              const inputBlock = target.blocks.getBlock(inputId);
-              // Only grab the value from text blocks. This means we'll
-              // miss some. e.g. values in variables or other reporters.
-              if (inputBlock.opcode === 'text') {
-                  const word = target.blocks.getBlock(inputId).fields.TEXT.value;
-                  if (txt.indexOf(word)>-1){
-                    this.runtime.startHats('BaiduAI_whenheard', {TEXT: word});
-                    words.push(word);
-                  }
-              }
+        const b = target.blocks.getBlock(id);
+        if (b.opcode === 'BaiduAI_whenheard') {
+          // Grab the text from the hat block's shadow.
+          const inputId = b.inputs.SPEECH.block;
+          const inputBlock = target.blocks.getBlock(inputId);
+          // Only grab the value from text blocks. This means we'll
+          // miss some. e.g. values in variables or other reporters.
+          if (inputBlock.opcode === 'text') {
+            const word = target.blocks.getBlock(inputId).fields.TEXT.value;
+            if (txt.indexOf(word) > -1) {
+              this.runtime.startHats('BaiduAI_whenheard', { TEXT: word });
+              words.push(word);
+            }
           }
+        }
       });
     });
   }
 
-  _recognize (){
+  _recognize() {
     const _recognizeSuccess = this._recognizeSuccess;
     this._resetListening();
     // var pcm = floatTo16BitPCM(this.bufferArray);
@@ -138,8 +166,8 @@ class BaiduAI{
     var buffer = new ArrayBuffer(dataLength);
     var data = new DataView(buffer);
     var offset = 0;
-    
-    for (var i = 0; i < this.bufferArray.length; i++, offset += 2) {
+
+    for (var i = 0; i < this.bufferArray.length; i++ , offset += 2) {
       var s = Math.max(-1, Math.min(1, this.bufferArray[i]));
       data.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
     }
@@ -147,62 +175,62 @@ class BaiduAI{
     var blob = new Blob([data], { type: 'audio/wav' });
     var reader = new FileReader();
     const _this = this;
-    reader.onload = function() {
-        var dataUrl = reader.result;
-        var base64 = dataUrl.split(',')[1];
-        // console.log(base64);
-        const reqJson = {
-          "format":"pcm",
-          "rate":16000,
-          "dev_pid":1537,
-          "channel":1,
-          "token":"24.3d8401a9a47d898f4e0355521c40c677.2592000.1561269908.282335-16328058",
-          "cuid":"kittenblock",
-          "len":dataLength,
-          "speech": base64
+    reader.onload = function () {
+      var dataUrl = reader.result;
+      var base64 = dataUrl.split(',')[1];
+      // console.log(base64);
+      const reqJson = {
+        "format": "pcm",
+        "rate": 16000,
+        "dev_pid": 1537,
+        "channel": 1,
+        "token": accessTokenVoice,
+        "cuid": "kittenblock",
+        "len": dataLength,
+        "speech": base64
+      }
+      fetch("http://vop.baidu.com/server_api", {
+        body: JSON.stringify(reqJson),
+        headers: {
+          'content-type': 'application/json'
+        },
+        method: "POST"
+      }).then(res => res.json()).then(ret => {
+        console.log(ret);
+        if (ret.err_no === 0) {
+          _recognizeSuccess(ret.result[0]);
         }
-        fetch("http://vop.baidu.com/server_api", {
-          body: JSON.stringify(reqJson),
-          headers: {
-            'content-type': 'application/json'
-          },
-          method: "POST"
-        }).then(res => res.json()).then(ret => {
-          console.log(ret);
-          if (ret.err_no === 0){
-            _recognizeSuccess(ret.result[0]);
-          }
-        });
+      });
     };
     reader.readAsDataURL(blob);
 
   }
 
-  _resetListening () {
+  _resetListening() {
     this.runtime.emitMicListening(false);
     // Note that this can be called before any Listen And Wait block did setup,
     // so check that things exist before disconnecting them.
-      if (this._context) {
-        this._context.suspend.bind(this._context);
+    if (this._context) {
+      this._context.suspend.bind(this._context);
     }
     // This is called on green flag to reset things that may never have existed
     // in the first place. Do a bunch of checks.
     if (this._scriptNode) {
-        this._scriptNode.removeEventListener('audioprocess', this._processAudioCallback);
-        this._scriptNode.disconnect();
+      this._scriptNode.removeEventListener('audioprocess', this._processAudioCallback);
+      this._scriptNode.disconnect();
     }
     if (this._sourceNode) {
-        this._sourceNode.disconnect();
+      this._sourceNode.disconnect();
     }
 
   }
 
-  listenspeech (args, util){
+  listenspeech(args, util) {
     let timeout = parseInt(args.TIMEOUT, 10);
-    timeout = timeout<1 ? 1 : timeout;
-    timeout = timeout>60 ? 60 : timeout;
+    timeout = timeout < 1 ? 1 : timeout;
+    timeout = timeout > 60 ? 60 : timeout;
     this.runtime.emitMicListening(true);
-    this.bufferArray= [];
+    this.bufferArray = [];
     return new Promise(resolve => {
       this._sourceNode = this._context.createMediaStreamSource(this._micStream);
       this._scriptNode = this._context.createScriptProcessor(BUFSIZE, 1, 1);
@@ -210,19 +238,55 @@ class BaiduAI{
       this._sourceNode.connect(this._scriptNode);
       this._scriptNode.addEventListener('audioprocess', this._processAudioCallback);
       this._scriptNode.connect(this._context.destination);
-      setTimeout(this._recognize, timeout*1000);
+      setTimeout(this._recognize, timeout * 1000);
       this._onSpeechDone = resolve;
     });
   }
 
-  whenheard (args, util){
+  whenheard(args, util) {
     //const SPEECH = args.SPEECH;
     ///console.log("heart", args);
     return true;
   }
 
-  speechout (args, util){
+  speechout(args, util) {
     return this.result;
+  }
+
+  writecunlian(args, util) {
+    return new Promise(resolve => {
+      fetch(`https://aip.baidubce.com/rpc/2.0/nlp/v1/couplets?access_token=${accessTokenWrite}`, {
+        body: JSON.stringify({
+          "text": args.KEY,
+          "index": 0,
+        }),
+        headers: {
+          'content-type': 'application/json'
+        },
+        method: "POST"
+      }).then(res => res.json()).then(ret => {
+        const couplets = ret.couplets;
+        resolve(`${couplets.first}, ${couplets.second}. ${couplets.center}`)
+      });
+    });
+  }
+
+  writepoem(args, util) {
+    return new Promise(resolve => {
+      fetch(`https://aip.baidubce.com/rpc/2.0/nlp/v1/poem?access_token=${accessTokenWrite}`, {
+        body: JSON.stringify({
+          "text": args.KEY,
+          "index": 0,
+        }),
+        headers: {
+          'content-type': 'application/json'
+        },
+        method: "POST"
+      }).then(res => res.json()).then(ret => {
+        const poem = ret.poem[0];
+        resolve(`${poem.title}\n${poem.content}`)
+      });
+    });
   }
 
 }
