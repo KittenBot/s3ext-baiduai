@@ -118,7 +118,7 @@ class BaiduAI {
           speechout: '语音输入',
           writecunlian: "写春联 [KEY]",
           writepoem: "写诗 [KEY]",
-        }
+        },
         'zh-tw': {
           listenspeech: '聽候語音輸入 超時[TIMEOUT]',
           whenheard: '當聽到 [SPEECH]',
