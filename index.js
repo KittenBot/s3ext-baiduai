@@ -1,4 +1,4 @@
-// create by scratch3-extension generator
+﻿// create by scratch3-extension generator
 const ArgumentType = Scratch.ArgumentType;
 const BlockType = Scratch.BlockType;
 const formatMessage = Scratch.formatMessage;
@@ -118,6 +118,13 @@ class BaiduAI {
           speechout: '语音输入',
           writecunlian: "写春联 [KEY]",
           writepoem: "写诗 [KEY]",
+        }
+        'zh-tw': {
+          listenspeech: '聽候語音輸入 超時[TIMEOUT]',
+          whenheard: '當聽到 [SPEECH]',
+          speechout: '語音輸入',
+          writecunlian: "寫春聯 [KEY]",
+          writepoem: "寫詩 [KEY]",
         }
       }
     }
