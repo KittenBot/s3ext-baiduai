@@ -11,8 +11,9 @@ const Resampler = require('./resampler.js');
 
 const BUFSIZE = 8192;
 
-const accessTokenVoice = "24.61e0ddccb87906954a0dadc95c7a6bf1.2592000.1562319236.282335-16328058";
-const accessTokenWrite = "24.1f87f4e642a774141b2f6f6cd0946643.2592000.1562319934.282335-16440024";
+const accessTokenVoice = "24.b21ac2bc95a3eb1668eb311da8f90bd4.2592000.1564995754.282335-16328058";
+const accessTokenWrite = "25.763947bde8b432ae2fc704ca14bcaa9e.315360000.1877764204.282335-16440024";
+const accessTokenVocob = "24.fdde5d6ef5777056b284da7ee363dc84.2592000.1564995927.282335-16726540";
 
 class BaiduAI {
   constructor(runtime) {
@@ -20,6 +21,7 @@ class BaiduAI {
     this._context = null;
     this._resampler = null;
     this._onSpeechDone = null;
+    this._onSpeechFail = null;
     this.initMicroPhone = this.initMicroPhone.bind(this);
     this._processAudioCallback = this._processAudioCallback.bind(this);
     this._resetListening = this._resetListening.bind(this);
@@ -165,6 +167,7 @@ class BaiduAI {
 
   _recognize() {
     const _recognizeSuccess = this._recognizeSuccess;
+    const _onSpeechFail = this._onSpeechFail;
     this._resetListening();
     // var pcm = floatTo16BitPCM(this.bufferArray);
     // console.log("total", pcm);
@@ -206,6 +209,10 @@ class BaiduAI {
         console.log(ret);
         if (ret.err_no === 0) {
           _recognizeSuccess(ret.result[0]);
+        } else {
+          if (_onSpeechFail) {
+            _onSpeechFail(ret.err_msg);
+          }
         }
       });
     };
@@ -238,7 +245,7 @@ class BaiduAI {
     timeout = timeout > 60 ? 60 : timeout;
     this.runtime.emitMicListening(true);
     this.bufferArray = [];
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
       this._sourceNode = this._context.createMediaStreamSource(this._micStream);
       this._scriptNode = this._context.createScriptProcessor(BUFSIZE, 1, 1);
 
@@ -247,6 +254,7 @@ class BaiduAI {
       this._scriptNode.connect(this._context.destination);
       setTimeout(this._recognize, timeout * 1000);
       this._onSpeechDone = resolve;
+      this._onSpeechFail = reject;
     });
   }
 
