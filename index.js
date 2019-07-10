@@ -16,9 +16,21 @@ const accessTokenWrite = "25.763947bde8b432ae2fc704ca14bcaa9e.315360000.18777642
 const accessTokenVocob = "24.fdde5d6ef5777056b284da7ee363dc84.2592000.1564995927.282335-16726540";
 const accessTokenImage = "24.46c6417401420b96509fdd009653035d.2592000.1564999599.282335-16726823";
 
+const recognizeMap = {
+    'ingredient': 'https://aip.baidubce.com/rest/2.0/image-classify/v1/classify/ingredient',
+    'plant': 'https://aip.baidubce.com/rest/2.0/image-classify/v1/plant',
+    'dish': 'https://aip.baidubce.com/rest/2.0/image-classify/v2/dish',
+    'animal': 'https://aip.baidubce.com/rest/2.0/image-classify/v1/animal',
+    'redwine': 'https://aip.baidubce.com/rest/2.0/image-classify/v1/redwine',
+    'flower': 'https://aip.baidubce.com/rest/2.0/image-classify/v1/flower',
+    'car': 'https://aip.baidubce.com/rest/2.0/image-classify/v1/car',
+    'landmark': 'https://aip.baidubce.com/rest/2.0/image-classify/v1/landmark'
+}
+
 class BaiduAI {
   constructor(runtime) {
     this.runtime = runtime;
+    this.fs = runtime.ioDevices.fs;
     this._context = null;
     this._resampler = null;
     this._onSpeechDone = null;
@@ -124,7 +136,7 @@ class BaiduAI {
             TYPE: {
               type: ArgumentType.STRING,
               menu: 'typemenu',
-              defaultValue: "https://aip.baidubce.com/rest/2.0/image-classify/v1/classify/ingredient"
+              defaultValue: "ingredient"
             }
           },
         },
@@ -148,16 +160,7 @@ class BaiduAI {
         },
       ],
       menus: {
-        typemenu: [
-          {text: 'ingredient', value: 'https://aip.baidubce.com/rest/2.0/image-classify/v1/classify/ingredient'},
-          {text: 'plant', value: 'https://aip.baidubce.com/rest/2.0/image-classify/v1/plant'},
-          {text: 'dish', value: 'https://aip.baidubce.com/rest/2.0/image-classify/v2/dish'},
-          {text: 'animal', value: 'https://aip.baidubce.com/rest/2.0/image-classify/v1/animal'},
-          {text: 'redwine', value: 'https://aip.baidubce.com/rest/2.0/image-classify/v1/redwine'},
-          {text: 'flower', value: 'https://aip.baidubce.com/rest/2.0/image-classify/v1/flower'},
-          {text: 'car', value: 'https://aip.baidubce.com/rest/2.0/image-classify/v1/car'},
-          {text: 'landmark', value: 'https://aip.baidubce.com/rest/2.0/image-classify/v1/landmark'},
-        ]
+        typemenu: ['ingredient', 'plant','dish','animal','redwine', 'flower','car', 'landmark']
       },
       translation_map: {
         'zh-cn': {
@@ -166,6 +169,20 @@ class BaiduAI {
           speechout: '语音输入',
           writecunlian: "写春联 [KEY]",
           writepoem: "写诗 [KEY]",
+          recognizeItem: "识别 类别[TYPE]",
+          typemenu: {
+              ingredient: "蔬菜",
+              plant: "盆栽",
+              dish: '菜品',
+              animal: '动物',
+              redwine: '红酒',
+              flower: '花',
+              car: '汽车',
+              landmark: '地标',
+          },
+          recognizeDone: "当识别完成",
+          recognizeResult: "识别结果",
+          recognizeOpenBaike: "识别结果@百度百科",
         },
         'zh-tw': {
           listenspeech: '聽候語音輸入 超時[TIMEOUT]',
@@ -354,7 +371,7 @@ class BaiduAI {
     this._recognizeResult = null;
     const regType = args.TYPE;
     const img = util.ioQuery('fs', 'stageCanvasData', []).replace('data:image/png;base64,', '');
-    const url = `${regType}?access_token=${accessTokenImage}`;
+    const url = `${recognizeMap[regType]}?access_token=${accessTokenImage}`;
     return new Promise(resolve => {
       fetch(url, {
         method: 'POST',
