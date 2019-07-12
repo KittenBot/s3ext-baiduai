@@ -190,6 +190,20 @@ class BaiduAI {
           speechout: '語音輸入',
           writecunlian: "寫春聯 [KEY]",
           writepoem: "寫詩 [KEY]",
+          recognizeItem: "辯識 類別[TYPE]",
+          typemenu: {
+              ingredient: "蔬菜",
+              plant: "盆栽",
+              dish: '菜品',
+              animal: '動物',
+              redwine: '紅酒',
+              flower: '花',
+              car: '汽車',
+              landmark: '地標',
+          },
+          recognizeDone: "當辯識完成",
+          recognizeResult: "辯識結果",
+          recognizeOpenBaike: "識別結果@百度百科",
         }
       }
     }
