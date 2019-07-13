@@ -12,7 +12,7 @@ const Resampler = require('./resampler.js');
 const BUFSIZE = 8192;
 
 const accessTokenVoice = "24.b21ac2bc95a3eb1668eb311da8f90bd4.2592000.1564995754.282335-16328058";
-const accessTokenWrite = "25.763947bde8b432ae2fc704ca14bcaa9e.315360000.1877764204.282335-16440024";
+const accessTokenWrite = "24.11152892cc2bf0050feaa4c02ca45d37.2592000.1565583107.282335-16440024";
 const accessTokenVocob = "24.fdde5d6ef5777056b284da7ee363dc84.2592000.1564995927.282335-16726540";
 const accessTokenImage = "24.46c6417401420b96509fdd009653035d.2592000.1564999599.282335-16726823";
 
@@ -149,18 +149,17 @@ class BaiduAI {
         {
           opcode: 'recognizeResult',
           blockType: BlockType.REPORTER,
-          isEdgeActivated: false,
           text: 'Recognize Result'
         },
         {
           opcode: 'recognizeOpenBaike',
           blockType: BlockType.COMMAND,
-          isEdgeActivated: false,
-          text: 'Open Baike Link'
+          text: 'Open Baike Link',
+          blockDisabled: true // not all api have such result
         },
       ],
       menus: {
-        typemenu: ['ingredient', 'plant','dish','animal','redwine', 'flower','car', 'landmark']
+        typemenu: ['ingredient', 'plant','dish','animal','redwine','car']
       },
       translation_map: {
         'zh-cn': {
@@ -410,6 +409,8 @@ class BaiduAI {
   recognizeResult (args, util){
     if (this._recognizeResult && this._recognizeResult.length){
       return this._recognizeResult[0].name;
+    } else if (this._recognizeResult.wineNameCn){
+      return this._recognizeResult.wineNameCn;
     }
   }
 
