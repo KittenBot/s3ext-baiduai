@@ -11,10 +11,23 @@ const Resampler = require('./resampler.js');
 
 const BUFSIZE = 8192;
 
-const accessTokenVoice = "24.b21ac2bc95a3eb1668eb311da8f90bd4.2592000.1564995754.282335-16328058";
-const accessTokenWrite = "24.11152892cc2bf0050feaa4c02ca45d37.2592000.1565583107.282335-16440024";
-const accessTokenVocob = "24.fdde5d6ef5777056b284da7ee363dc84.2592000.1564995927.282335-16726540";
-const accessTokenImage = "24.46c6417401420b96509fdd009653035d.2592000.1564999599.282335-16726823";
+const makeid = function () {
+    var text = '';
+    var possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+
+    for (var i = 0; i < 5; i++) {
+        text += possible.charAt(Math.floor(Math.random() * possible.length));
+    }
+
+    return text;
+};
+
+let tokens = {
+    voice: "24.b21ac2bc95a3eb1668eb311da8f90bd4.2592000.1564995754.282335-16328058",
+    write: "24.11152892cc2bf0050feaa4c02ca45d37.2592000.1565583107.282335-16440024",
+    vocob: "24.fdde5d6ef5777056b284da7ee363dc84.2592000.1564995927.282335-16726540",
+    image: "24.46c6417401420b96509fdd009653035d.2592000.1564999599.282335-16726823"
+}
 
 const recognizeMap = {
     'ingredient': 'https://aip.baidubce.com/rest/2.0/image-classify/v1/classify/ingredient',
@@ -47,6 +60,13 @@ class BaiduAI {
     this.bufferArray = [];
 
     this._recognizeResult;
+    
+    fetch(`http://download.kittenbot.cn/baiduai/tokens.json?v=${makeid()}`, {
+        method: "GET"
+      }).then(res => res.json()).then(ret => {
+        tokens = ret;
+        console.log("new token", tokens);
+      });
 
   }
 
@@ -270,7 +290,7 @@ class BaiduAI {
         "rate": 16000,
         "dev_pid": 1537,
         "channel": 1,
-        "token": accessTokenVoice,
+        "token": tokens.voice,
         "cuid": "kittenblock",
         "len": dataLength,
         "speech": base64
@@ -346,7 +366,7 @@ class BaiduAI {
 
   writecunlian(args, util) {
     return new Promise(resolve => {
-      fetch(`https://aip.baidubce.com/rpc/2.0/nlp/v1/couplets?access_token=${accessTokenWrite}`, {
+      fetch(`https://aip.baidubce.com/rpc/2.0/nlp/v1/couplets?access_token=${tokens.write}`, {
         body: JSON.stringify({
           "text": args.KEY,
           "index": 0,
@@ -364,7 +384,7 @@ class BaiduAI {
 
   writepoem(args, util) {
     return new Promise(resolve => {
-      fetch(`https://aip.baidubce.com/rpc/2.0/nlp/v1/poem?access_token=${accessTokenWrite}`, {
+      fetch(`https://aip.baidubce.com/rpc/2.0/nlp/v1/poem?access_token=${tokens.write}`, {
         body: JSON.stringify({
           "text": args.KEY,
           "index": 0,
@@ -384,7 +404,7 @@ class BaiduAI {
     this._recognizeResult = null;
     const regType = args.TYPE;
     const img = util.ioQuery('fs', 'stageCanvasData', []).replace('data:image/png;base64,', '');
-    const url = `${recognizeMap[regType]}?access_token=${accessTokenImage}`;
+    const url = `${recognizeMap[regType]}?access_token=${tokens.image}`;
     return new Promise(resolve => {
       fetch(url, {
         method: 'POST',
