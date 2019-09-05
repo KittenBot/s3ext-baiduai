@@ -427,10 +427,10 @@ class BaiduAI {
   }
 
   recognizeResult (args, util){
-    if (this._recognizeResult && this._recognizeResult.length){
-      return this._recognizeResult[0].name;
-    } else if (this._recognizeResult.wineNameCn){
+    if (this._recognizeResult && this._recognizeResult.wineNameCn){
       return this._recognizeResult.wineNameCn;
+    } else if (this._recognizeResult && this._recognizeResult.length){
+      return this._recognizeResult[0].name;
     }
   }
 
